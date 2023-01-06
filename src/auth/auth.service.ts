@@ -1,15 +1,25 @@
-import { ForbiddenException, Injectable, Res } from '@nestjs/common';
-import { Get } from '@nestjs/common/decorators/http/request-mapping.decorator';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common/exceptions';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt/dist';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import * as argon from 'argon2';
 import { Response } from 'express';
+import { domainToASCII } from 'url';
+import { MailerService } from '../mailer/mailer.service';
+import { verifyEmailTemplate } from '../mailer/mailTemplates';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuthDto } from './dto';
+import {
+  AuthDto,
+  SendVerificationEmailDto,
+  SignupDto,
+  VerifyEmailDto,
+} from './dto';
 //! add email validation
 //! add csrf and refresh tokens
+const MINS_15 = 15 * 60 * 1000;
+import { generate as generateRandToken } from 'rand-token';
+import { durationFromNow } from '../util/decorators/helpers/durationFromNow';
 
 @Injectable()
 export class AuthService {
@@ -17,19 +27,116 @@ export class AuthService {
     private prisma: PrismaService,
     private config: ConfigService,
     private jwt: JwtService,
+    private mailerService: MailerService,
   ) {}
-  async signup(dto: AuthDto, res: Response) {
-    const hash = await argon.hash(dto.password);
-    try {
-      const user = await this.prisma.user.create({
+  async sendVerificationEmail(dto: SendVerificationEmailDto) {
+    let verification = await this.prisma.verifyEmail.findUnique({
+      where: {
+        email: dto.email,
+      },
+    });
+    if (verification && verification.isVerified) {
+      return {
+        message: 'Email already verified',
+        isVerified: true,
+      };
+    }
+    const token = generateRandToken(16);
+    const tokenHash = await argon.hash(token);
+
+    if (!verification) {
+      verification = await this.prisma.verifyEmail.create({
         data: {
           email: dto.email,
+          tokenHash,
+        },
+      });
+    } else {
+      verification = await this.prisma.verifyEmail.update({
+        where: {
+          email: dto.email,
+        },
+        data: {
+          email: dto.email,
+          tokenHash,
+        },
+      });
+    }
+
+    this.mailerService.sendMail({
+      to: dto.email,
+      html: verifyEmailTemplate.email(
+        `${this.config.get('CLIENT_DOMAIN')}/email=${dto.email}&token=${token}`,
+      ),
+      subject: verifyEmailTemplate.subject(),
+    }); //! add logs
+    //! and failure handle ?
+
+    return {
+      message: 'Verification email sent',
+      isVerified: false,
+    };
+  }
+
+  async verifyEmail(dto: VerifyEmailDto) {
+    const verification = await this.prisma.verifyEmail.findUnique({
+      where: {
+        email: dto.email,
+      },
+    });
+    if (!verification || durationFromNow(verification.updated_at) > MINS_15) {
+      throw new UnauthorizedException('Email invalid');
+    }
+    if (verification.isVerified) {
+      return {
+        message: 'Email verified',
+        isVerified: true,
+      };
+    }
+    const isTokenValid = await argon.verify(verification.tokenHash, dto.token);
+    if (!isTokenValid) {
+      throw new UnauthorizedException('Invalid Token');
+    }
+    await this.prisma.verifyEmail.update({
+      where: {
+        email: verification.email,
+      },
+      data: {
+        isVerified: true,
+        tokenHash: '',
+      },
+    });
+
+    return {
+      message: 'Email verified',
+      isVerified: true,
+    };
+  }
+
+  async signup(dto: SignupDto, res: Response) {
+    const hash = await argon.hash(dto.password);
+    try {
+      const verification = await this.prisma.verifyEmail.findUnique({
+        where: { email: dto.email },
+      });
+      if (!verification || verification.isVerified === false) {
+        throw new ForbiddenException('Email not verified');
+      }
+      if (durationFromNow(verification.updated_at) > MINS_15) {
+        throw new ForbiddenException('Verification expired');
+      }
+      const user = await this.prisma.user.create({
+        data: {
+          name: dto.name,
+          email: verification.email,
           hash,
         },
       });
       delete user.hash;
       const { access_token } = await this.signToken(user.id, user.email);
+
       this.storeTokenInCookie(res, access_token);
+
       return user;
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
@@ -40,6 +147,7 @@ export class AuthService {
       throw error;
     }
   }
+
   async signin(dto: AuthDto, res: Response) {
     const user = await this.prisma.user.findUnique({
       where: {

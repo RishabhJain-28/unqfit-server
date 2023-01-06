@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from './../src/app.module';
 import * as pactum from 'pactum';
-import { AuthDto } from '../src/auth/dto';
+import { AuthDto, SignupDto } from '../src/auth/dto';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { setupApplication } from '../src/setup';
 describe('AppController (e2e)', () => {
@@ -28,12 +28,17 @@ describe('AppController (e2e)', () => {
       email: 'abc@gmail.com',
       password: 'Pass@123',
     };
+
     describe('Signup', () => {
+      const signupDto: SignupDto = {
+        ...authDto,
+        name: 'Test perosn 1',
+      };
       it('Should sign up', () => {
         return pactum
           .spec()
           .post('/auth/signup')
-          .withBody(authDto)
+          .withBody(signupDto)
           .expectStatus(201);
       });
       it('Should throw if email empty', () => {
@@ -41,7 +46,7 @@ describe('AppController (e2e)', () => {
           .spec()
           .post('/auth/signup')
           .withBody({
-            password: authDto.password,
+            password: signupDto.password,
           })
           .expectStatus(400);
       });
@@ -50,7 +55,7 @@ describe('AppController (e2e)', () => {
           .spec()
           .post('/auth/signup')
           .withBody({
-            email: authDto.email,
+            email: signupDto.email,
           })
           .expectStatus(400);
       });

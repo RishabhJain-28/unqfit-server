@@ -10,12 +10,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model VerifyEmail {
+  email      String   @id @unique
+  isVerified Boolean  @default(false)
+  tokenHash  String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+//!add auto delete 
 
 model User {
-  id Int @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  email String @unique
-  hash String
+  id         Int      @id @default(autoincrement())
+  created_at DateTime @default(now())
+  email      String   @unique
+  hash       String
+  name       String
 
-@@map("users")
+  @@map("users")
 }
+
+//! index on email
