@@ -1,10 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { AppModule } from './../src/app.module';
+import { Test } from '@nestjs/testing';
 import * as pactum from 'pactum';
 import { AuthDto, SignupDto } from '../src/auth/dto';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { setupApplication } from '../src/setup';
+import { AppModule } from './../src/app.module';
+
 describe('AppController (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -42,6 +43,7 @@ describe('AppController (e2e)', () => {
           .expectStatus(201);
       });
       it('Should throw if email empty', () => {
+        //! add more expects other than Status
         return pactum
           .spec()
           .post('/auth/signup')
@@ -51,6 +53,7 @@ describe('AppController (e2e)', () => {
           .expectStatus(400);
       });
       it('Should throw if password empty', () => {
+        //! add more expects other than Status
         return pactum
           .spec()
           .post('/auth/signup')
@@ -60,6 +63,7 @@ describe('AppController (e2e)', () => {
           .expectStatus(400);
       });
     });
+
     describe('Signin', () => {
       it('should sign in', () => {
         return pactum
@@ -80,5 +84,9 @@ describe('AppController (e2e)', () => {
           .expectStatus(401);
       });
     });
+  });
+
+  afterAll(() => {
+    app.close();
   });
 });

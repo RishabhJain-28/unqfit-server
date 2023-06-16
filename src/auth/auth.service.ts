@@ -5,7 +5,6 @@ import { JwtService } from '@nestjs/jwt/dist';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import * as argon from 'argon2';
 import { Response } from 'express';
-import { domainToASCII } from 'url';
 import { MailerService } from '../mailer/mailer.service';
 import { verifyEmailTemplate } from '../mailer/mailTemplates';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,11 +14,12 @@ import {
   SignupDto,
   VerifyEmailDto,
 } from './dto';
-//! add email validation
-//! add csrf and refresh tokens
-const MINS_15 = 15 * 60 * 1000;
 import { generate as generateRandToken } from 'rand-token';
 import { durationFromNow } from '../util/decorators/helpers/durationFromNow';
+//! add email validation
+//! add csrf and refresh tokens
+
+const MINS_15 = 60 * 1000;
 
 @Injectable()
 export class AuthService {
