@@ -8,5 +8,9 @@ export const setupApplication = (app: INestApplication) => {
     new ValidationPipe({
       whitelist: true,
     }),
+    new ValidationPipe({
+      transform: true,
+      transformOptions: { groups: ['transform'] },
+    }),
   );
 };

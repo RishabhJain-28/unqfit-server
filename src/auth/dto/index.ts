@@ -6,6 +6,8 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+//! use IsValidStrig for string
+
 export class AuthDto {
   @IsEmail()
   @IsNotEmpty()

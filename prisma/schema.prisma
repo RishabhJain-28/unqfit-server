@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["clientExtensions"]
 }
 
 datasource db {
@@ -31,3 +32,29 @@ model User {
 }
 
 //! index on email
+
+model Product {
+  id            Int       @id @default(autoincrement())
+  created_at    DateTime  @default(now())
+  name          String
+  type          String
+  description   String
+  images        String[] //max 10 
+  quantity      Int
+  size          Size
+  price         Int
+  discount      Int
+  color         String
+  material      String
+  // Rating
+  baseProductId Int?
+  baseProduct   Product?  @relation("ProductVariants", fields: [baseProductId], references: [id])
+  students      Product[] @relation("ProductVariants")
+}
+
+//! change
+enum Size {
+  SMALL
+  MEDIUM
+  LARGE
+}

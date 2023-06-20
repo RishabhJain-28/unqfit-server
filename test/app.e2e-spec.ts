@@ -1,10 +1,17 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import * as pactum from 'pactum';
-import { AuthDto, SignupDto } from '../src/auth/dto';
+import {
+  AuthDto,
+  SendVerificationEmailDto,
+  SignupDto,
+  VerifyEmailDto,
+} from '../src/auth/dto';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { setupApplication } from '../src/setup';
 import { AppModule } from './../src/app.module';
+import { createMock } from '@golevelup/ts-jest';
+import { MailerService } from '../src/mailer/mailer.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -13,6 +20,9 @@ describe('AppController (e2e)', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
+      providers: [
+        { provide: MailerService, useValue: createMock<MailerService>() },
+      ],
     }).compile();
     app = moduleRef.createNestApplication();
     setupApplication(app);
@@ -25,10 +35,25 @@ describe('AppController (e2e)', () => {
   });
 
   describe('Auth', () => {
+    // const EMAIL = ;
     const authDto: AuthDto = {
       email: 'abc@gmail.com',
       password: 'Pass@123',
     };
+    const sendVerificationEmailDto: SendVerificationEmailDto = {
+      email: authDto.email,
+    };
+
+    describe('Verify Email', () => {
+      pactum
+        .spec()
+        .post('/auth/sendVerificationEmail')
+        .withBody(sendVerificationEmailDto)
+        .expectStatus(201);
+
+      const emailService = app.get<MailerService>(MailerService);
+      expect(emailService.sendMail).toHaveBeenCalled();
+    });
 
     describe('Signup', () => {
       const signupDto: SignupDto = {

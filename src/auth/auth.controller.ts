@@ -1,14 +1,15 @@
-import { Controller, HttpCode, HttpStatus, Post, Get } from '@nestjs/common';
-import { Body } from '@nestjs/common/decorators';
-import { Res } from '@nestjs/common';
-import { AuthService } from './auth.service';
 import {
-  AuthDto,
-  SendVerificationEmailDto,
-  SignupDto,
-  VerifyEmailDto,
-} from './dto';
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Res,
+} from '@nestjs/common';
+import { Body, Query } from '@nestjs/common/decorators';
 import { Response } from 'express';
+import { AuthService } from './auth.service';
+import { AuthDto, SendVerificationEmailDto, SignupDto } from './dto';
 
 @Controller('auth')
 export class AuthController {
@@ -25,7 +26,7 @@ export class AuthController {
     return this.authService.signin(dto, res);
   }
 
-  @Get('signout')
+  @Get('/signout')
   signout(@Res({ passthrough: true }) res: Response) {
     this.authService.removeTokenFromCookie(res);
     return {
@@ -33,12 +34,12 @@ export class AuthController {
     };
   }
 
-  @Post('verifyEmail')
-  verifyEmail(@Body() dto: VerifyEmailDto) {
-    return this.authService.verifyEmail(dto);
+  @Get('/verifyEmail')
+  verifyEmail(@Query('email') email: string, @Query('token') token: string) {
+    return this.authService.verifyEmail({ email, token });
   }
 
-  @Post('sendVerificationEmail')
+  @Post('/sendVerificationEmail')
   sendVerificationEmail(@Body() dto: SendVerificationEmailDto) {
     return this.authService.sendVerificationEmail(dto);
   }

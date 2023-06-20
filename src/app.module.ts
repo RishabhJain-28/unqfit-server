@@ -6,6 +6,7 @@ import { UserModule } from './user/user.module';
 import { HealthCheckModule } from './health-check/health-check.module';
 // import { MailerModule } from '@nestjs-modules/mailer';
 import { MailerModule } from './mailer/mailer.module';
+import { ProductModule } from './product/product.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { MailerModule } from './mailer/mailer.module';
     PrismaModule,
     AuthModule,
     UserModule,
+    ProductModule,
     HealthCheckModule,
     MailerModule,
     // MailerModule.forRootAsync({

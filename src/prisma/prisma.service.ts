@@ -12,7 +12,17 @@ export class PrismaService extends PrismaClient {
       },
     });
   }
-
+  // withExtensions() {
+  //   return this.$extends({
+  //     model: {
+  //       product: {
+  //         create() {
+  //           console.log('THIS is created');
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
   cleanDb() {
     if (process.env.NODE_ENV === 'production') return;
     return this.$transaction([this.user.deleteMany()]);

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTransport, Transporter, SendMailOptions } from 'nodemailer';
-import { config } from 'process';
 @Injectable()
 export class MailerService {
   private mailer: Transporter;

@@ -1,10 +1,11 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common/exceptions';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt/dist';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import * as argon from 'argon2';
 import { Response } from 'express';
+
 import { MailerService } from '../mailer/mailer.service';
 import { verifyEmailTemplate } from '../mailer/mailTemplates';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,10 +16,10 @@ import {
   VerifyEmailDto,
 } from './dto';
 import { generate as generateRandToken } from 'rand-token';
-import { durationFromNow } from '../util/decorators/helpers/durationFromNow';
+import { durationFromNow } from '../util/helpers/durationFromNow';
+import { Prisma } from '@prisma/client';
 //! add email validation
 //! add csrf and refresh tokens
-
 const MINS_15 = 60 * 1000;
 
 @Injectable()
@@ -66,7 +67,9 @@ export class AuthService {
     this.mailerService.sendMail({
       to: dto.email,
       html: verifyEmailTemplate.email(
-        `${this.config.get('CLIENT_DOMAIN')}/email=${dto.email}&token=${token}`,
+        `${this.config.get('CLIENT_DOMAIN')}/auth/verifyEmail?email=${
+          dto.email
+        }&token=${token}`,
       ),
       subject: verifyEmailTemplate.subject(),
     }); //! add logs
@@ -125,6 +128,8 @@ export class AuthService {
       if (durationFromNow(verification.updated_at) > MINS_15) {
         throw new ForbiddenException('Verification expired');
       }
+      //! delete validation
+
       const user = await this.prisma.user.create({
         data: {
           name: dto.name,
@@ -139,7 +144,7 @@ export class AuthService {
 
       return user;
     } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ForbiddenException('Credentials Taken');
         }
