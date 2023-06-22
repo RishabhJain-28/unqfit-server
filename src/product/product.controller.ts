@@ -1,40 +1,44 @@
-import {
-  Controller,
-  Param,
-  ParseIntPipe,
-  Query,
-  UseGuards,
-  Body,
-} from '@nestjs/common';
+import { Body, Controller, Param, ParseIntPipe, Query } from '@nestjs/common';
 import {
   Get,
   Post,
 } from '@nestjs/common/decorators/http/request-mapping.decorator';
-import { User } from '@prisma/client';
-import { JwtGuard } from '../auth/guard';
-import { GetUser } from '../util/decorators/middleware/getUser.decorator';
-import { ProductService } from './product.service';
+import { ElasticsearchService } from '../elasticsearch/elasticsearch.service';
 import { AddProductDto } from './dto';
+import { ProductService } from './product.service';
 @Controller('products')
 export class ProductController {
-  constructor(private productService: ProductService) {}
+  constructor(
+    private productService: ProductService,
+    private elastic: ElasticsearchService,
+  ) {}
   //!remove
   @Get('all')
   getAll() {
     return this.productService.fetchAllProduct();
   }
-
   @Get('/:id')
-  searchProducts(@Param('id', new ParseIntPipe()) id: number) {
+  getFromId(@Param('id', new ParseIntPipe()) id: number) {
     return this.productService.getByIdProduct(id);
+  }
+  index = 'thisissomeindex';
+  @Get('search')
+  searchProducts(@Query('searchKey') searchKey: string) {
+    // return this.productService.searchProducts(searchKey);
+    // this.elastic.search({
+    //   query: {
+    //     fuzzy: ,
+    //   },
+    // });
+  }
+  @Get('test_create')
+  async test() {
+    this.elastic.createIndex(this.index);
   }
 
   @Post('/add')
-  addProduct(@Body() dto: AddProductDto) {
-    return this.productService.addProduct(dto);
+  async addProduct(@Body() dto: AddProductDto) {
+    return this.elastic.add(this.index, dto.name, dto.description);
+    // return this.productService.addProduct(dto);
   }
-  // @Get('search')
-  // searchProducts(@Query('searchKey') searchKey: string) {
-  //   return this.productService.fetchAllProduct();
-  // }
 }

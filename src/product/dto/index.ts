@@ -2,6 +2,7 @@ import { IsEnum, IsInt, Max, Min } from 'class-validator';
 import { IsValidString } from '../../util/decorators/validator/IsValidString.decorator';
 import { SizeChart } from '../../constants';
 
+//! update acc to the schema
 export class AddProductDto {
   @IsValidString()
   name: string;

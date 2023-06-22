@@ -2,8 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["clientExtensions"]
+  provider = "prisma-client-js"
+  // previewFeatures = ["clientExtensions"]
 }
 
 datasource db {
@@ -22,39 +22,104 @@ model VerifyEmail {
 //!add auto delete 
 
 model User {
-  id         Int      @id @default(autoincrement())
-  created_at DateTime @default(now())
-  email      String   @unique
+  id         Int        @id @default(autoincrement())
+  created_at DateTime   @default(now())
+  email      String     @unique
   hash       String
   name       String
+  Order      Order[]
+  CartItem   CartItem[]
 
+  //TODO  Address    String
+  //TODO  Phone    String
   @@map("users")
 }
 
-//! index on email
-
-model Product {
-  id            Int       @id @default(autoincrement())
-  created_at    DateTime  @default(now())
-  name          String
-  type          String
-  description   String
-  images        String[] //max 10 
-  quantity      Int
-  size          Size
-  price         Int
-  discount      Int
-  color         String
-  material      String
-  // Rating
-  baseProductId Int?
-  baseProduct   Product?  @relation("ProductVariants", fields: [baseProductId], references: [id])
-  students      Product[] @relation("ProductVariants")
-}
-
-//! change
+//! add more 
 enum Size {
   SMALL
   MEDIUM
   LARGE
+}
+
+//! index on email
+model Inventory {
+  // id         Int      @id @default(autoincrement())
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  size       Size
+  quantity   Int
+  price      Float
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([productId, size])
+}
+
+model Product {
+  // Rating
+  id            Int         @id @default(autoincrement())
+  created_at    DateTime    @default(now())
+  name          String
+  type          String
+  description   String
+  images        String[] //max 10
+  color         String
+  brand         String?
+  material      String
+  discount      Float
+  inventory     Inventory[]
+  in_stock      Boolean     @default(false)
+  archived      Boolean
+  baseProductId Int?
+  baseProduct   Product?    @relation("ProductVariants", fields: [baseProductId], references: [id])
+  students      Product[]   @relation("ProductVariants")
+  OrderItem     OrderItem[]
+  CartItem      CartItem[]
+}
+
+model CartItem {
+  id        Int     @id @default(autoincrement())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  qunatity  Int
+  Size      Int
+
+  @@index([userId])
+}
+
+enum OrderStatus {
+  PLACED
+  DISPATCHED
+  DELIVERED
+  CANCELED
+  //! add more? 
+}
+
+model Order {
+  id           Int         @id @default(autoincrement())
+  userId       Int
+  user         User        @relation(fields: [userId], references: [id])
+  status       OrderStatus
+  paymentType  String
+  total_amount Float
+  order_items  OrderItem[]
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+}
+
+model OrderItem {
+  // id        Int     @id @default(autoincrement())
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  price     Float
+  quantity  Int
+  discount  Float
+  size      Size
+
+  @@id([orderId, productId])
 }

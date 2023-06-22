@@ -1,19 +1,19 @@
 version: '3.8'
 services:
-  dev-db:
+  test-db:
     image: postgres:13
     ports:
-      - 5432:5432
+      - 5433:5432
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123
-      POSTGRES_DB: devdb
+      POSTGRES_DB: testdb
     networks:
       - main
-  dev-elastic-search:
+  test-elastic-search:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.8.1
     ports:
-      - 9200:9200
+      - 9201:9200
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false

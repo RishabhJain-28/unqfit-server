@@ -7,6 +7,7 @@ import { HealthCheckModule } from './health-check/health-check.module';
 // import { MailerModule } from '@nestjs-modules/mailer';
 import { MailerModule } from './mailer/mailer.module';
 import { ProductModule } from './product/product.module';
+import { ElasticSearchModule as ElasticsearchModule } from './elasticsearch/elasticsearch.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ProductModule } from './product/product.module';
     ProductModule,
     HealthCheckModule,
     MailerModule,
+    ElasticsearchModule,
     // MailerModule.forRootAsync({
     //   imports: [ConfigModule],
     //   inject: [ConfigService],
