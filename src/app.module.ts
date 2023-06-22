@@ -8,6 +8,8 @@ import { HealthCheckModule } from './health-check/health-check.module';
 import { MailerModule } from './mailer/mailer.module';
 import { ProductModule } from './product/product.module';
 import { ElasticSearchModule as ElasticsearchModule } from './elasticsearch/elasticsearch.module';
+import { OrdersModule } from './order/order.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { ElasticSearchModule as ElasticsearchModule } from './elasticsearch/elas
     HealthCheckModule,
     MailerModule,
     ElasticsearchModule,
+    OrdersModule,
+    CartModule,
     // MailerModule.forRootAsync({
     //   imports: [ConfigModule],
     //   inject: [ConfigService],

@@ -56,17 +56,25 @@ model Inventory {
   @@id([productId, size])
 }
 
+enum Category {
+  MEN
+  WOMEN
+  KIDS
+  SUMMER
+  WINTER
+}
+
 model Product {
   // Rating
   id            Int         @id @default(autoincrement())
   created_at    DateTime    @default(now())
   name          String
-  type          String
   description   String
   images        String[] //max 10
   color         String
   brand         String?
   material      String
+  category      Category[]
   discount      Float
   inventory     Inventory[]
   in_stock      Boolean     @default(false)

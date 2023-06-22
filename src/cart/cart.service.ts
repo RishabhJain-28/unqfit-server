@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class UserService {
+export class CartService {
   constructor(private prisma: PrismaService) {}
-  async getUserOrders(userId: number) {
-    return this.prisma.order.findMany({
+  async getUserCartItems(userId: number) {
+    return this.prisma.cartItem.findMany({
       where: {
         userId,
       },
