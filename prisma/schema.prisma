@@ -11,6 +11,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model VerifyEmail {
   email      String   @id @unique
   isVerified Boolean  @default(false)
@@ -29,6 +34,7 @@ model User {
   name       String
   Order      Order[]
   CartItem   CartItem[]
+  role       Role       @default(USER)
 
   //TODO  Address    String
   //TODO  Phone    String
@@ -51,6 +57,7 @@ model Inventory {
   quantity   Int
   price      Float
   productId  Int
+  discount   Float
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@id([productId, size])
@@ -66,19 +73,19 @@ enum Category {
 
 model Product {
   // Rating
-  id            Int         @id @default(autoincrement())
-  created_at    DateTime    @default(now())
-  name          String
-  description   String
-  images        String[] //max 10
-  color         String
-  brand         String?
-  material      String
-  category      Category[]
-  discount      Float
+  id          Int        @id @default(autoincrement())
+  created_at  DateTime   @default(now())
+  in_stock    Boolean    @default(false)
+  archived    Boolean    @default(false)
+  name        String
+  description String
+  // !images      String[] //max 10
+  color       String
+  material    String
+  category    Category[]
+  brand       String
+
   inventory     Inventory[]
-  in_stock      Boolean     @default(false)
-  archived      Boolean
   baseProductId Int?
   baseProduct   Product?    @relation("ProductVariants", fields: [baseProductId], references: [id])
   students      Product[]   @relation("ProductVariants")
@@ -93,8 +100,10 @@ model CartItem {
   product   Product @relation(fields: [productId], references: [id])
   productId Int
   qunatity  Int
-  Size      Int
+  size      Size
 
+  //! is this okay for performance 
+  @@unique([userId, productId, size])
   @@index([userId])
 }
 

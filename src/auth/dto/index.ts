@@ -15,12 +15,6 @@ export class AuthDto {
 
   @IsNotEmpty()
   @IsString()
-  @MinLength(4)
-  @MaxLength(20)
-  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
-    //! check this regex
-    message: 'password too weak',
-  })
   password: string;
 }
 
@@ -29,6 +23,17 @@ export class SignupDto extends AuthDto {
   @IsString()
   @MaxLength(256)
   name: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(4)
+  @MaxLength(20)
+  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+    //! check this regex, too weak , fix that
+    //! confirm it works like this
+    message: 'password too weak',
+  })
+  password: string;
 }
 export class SendVerificationEmailDto {
   @IsEmail()

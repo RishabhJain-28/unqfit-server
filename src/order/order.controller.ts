@@ -1,5 +1,5 @@
 import { Controller, Get, UseGuards, Query } from '@nestjs/common';
-import { JwtGuard } from '../auth/guard';
+import { AdminGuard, JwtGuard } from '../auth/guard';
 import { OrderService } from './order.service';
 import { GetUser } from '../util/decorators/middleware/getUser.decorator';
 import { OrderStatus } from '@prisma/client';
@@ -11,6 +11,7 @@ export class OrderController {
   constructor(private ordersService: OrderService) {}
 
   @Get('/status')
+  @UseGuards(AdminGuard)
   //! TODO: make admin only
   //! CHECK this api
   async getOrdersByStatus(@Query('status') status: OrderStatus) {

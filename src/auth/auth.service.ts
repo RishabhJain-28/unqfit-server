@@ -2,22 +2,21 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common/exceptions';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import * as argon from 'argon2';
 import { Response } from 'express';
 
-import { MailerService } from '../mailer/mailer.service';
+import { Prisma } from '@prisma/client';
+import { generate as generateRandToken } from 'rand-token';
 import { verifyEmailTemplate } from '../mailer/mailTemplates';
+import { MailerService } from '../mailer/mailer.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { durationFromNow } from '../util/helpers/durationFromNow';
 import {
   AuthDto,
   SendVerificationEmailDto,
   SignupDto,
   VerifyEmailDto,
 } from './dto';
-import { generate as generateRandToken } from 'rand-token';
-import { durationFromNow } from '../util/helpers/durationFromNow';
-import { Prisma } from '@prisma/client';
 //! add email validation
 //! add csrf and refresh tokens
 const MINS_15 = 60 * 1000;

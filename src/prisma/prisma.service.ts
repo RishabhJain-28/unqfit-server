@@ -25,6 +25,15 @@ export class PrismaService extends PrismaClient {
   // }
   cleanDb() {
     if (process.env.NODE_ENV === 'production') return;
-    return this.$transaction([this.user.deleteMany()]);
+    //!find better way
+    return this.$transaction([
+      this.user.deleteMany(),
+      this.product.deleteMany(),
+      this.cartItem.deleteMany(),
+      this.inventory.deleteMany(),
+      this.order.deleteMany(),
+      this.orderItem.deleteMany(),
+      this.verifyEmail.deleteMany(),
+    ]);
   }
 }
