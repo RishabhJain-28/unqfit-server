@@ -56,9 +56,9 @@ model Inventory {
   size       Size
   quantity   Int
   price      Float
-  productId  Int
   discount   Float
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  Int
 
   @@id([productId, size])
 }

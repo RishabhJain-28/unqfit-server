@@ -15,7 +15,11 @@ export class ProductService {
 
   //!remove
   async fetchAllProduct() {
-    return this.prisma.product.findMany();
+    return this.prisma.product.findMany({
+      include: {
+        inventory: true,
+      },
+    });
   }
 
   async getByIdProduct(id: number) {

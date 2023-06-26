@@ -10,6 +10,7 @@ import { ProductModule } from './product/product.module';
 import { ElasticSearchModule as ElasticsearchModule } from './elasticsearch/elasticsearch.module';
 import { OrdersModule } from './order/order.module';
 import { CartModule } from './cart/cart.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { CartModule } from './cart/cart.module';
     ElasticsearchModule,
     OrdersModule,
     CartModule,
+    InventoryModule,
     // MailerModule.forRootAsync({
     //   imports: [ConfigModule],
     //   inject: [ConfigService],

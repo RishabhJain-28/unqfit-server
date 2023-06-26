@@ -53,4 +53,5 @@ export class ProductController {
     // return this.elastic.add(this.index, dto.name, dto.description);
     return this.productService.addProduct(dto);
   }
+  //TODO   @Delete
 }

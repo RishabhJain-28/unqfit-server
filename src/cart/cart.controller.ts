@@ -1,4 +1,14 @@
-import { Controller, UseGuards, Get, Post } from '@nestjs/common';
+import {
+  Controller,
+  UseGuards,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Put,
+  Param,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { JwtGuard } from '../auth/guard';
 import { GetUser } from '../util/decorators/middleware/getUser.decorator';
 import { CartService } from './cart.service';
@@ -18,8 +28,18 @@ export class CartController {
   @Post('/add')
   async addToCart(
     @GetUser('id') userId: number,
-    addCartItemDto: AddCartItemDto,
+    @Body() addCartItemDto: AddCartItemDto,
   ) {
     return this.cartService.addItemToCart(userId, addCartItemDto);
   }
+  @Put('/remove/:id')
+  async removeFromCart(@Param('id', new ParseIntPipe()) cartItemId: number) {
+    return this.cartService.removeItemFromCart(cartItemId);
+  }
+
+  @Delete('/clear')
+  async clearCart(@GetUser('id') userId: number) {
+    return this.cartService.clearCart(userId);
+  }
+  //TODO   clear cart
 }
