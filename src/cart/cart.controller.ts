@@ -8,6 +8,7 @@ import {
   Put,
   Param,
   ParseIntPipe,
+  HttpCode,
 } from '@nestjs/common';
 import { JwtGuard } from '../auth/guard';
 import { GetUser } from '../util/decorators/middleware/getUser.decorator';
@@ -32,7 +33,8 @@ export class CartController {
   ) {
     return this.cartService.addItemToCart(userId, addCartItemDto);
   }
-  @Put('/remove/:id')
+  @Post('/remove/:id')
+  @HttpCode(200)
   async removeFromCart(@Param('id', new ParseIntPipe()) cartItemId: number) {
     return this.cartService.removeItemFromCart(cartItemId);
   }

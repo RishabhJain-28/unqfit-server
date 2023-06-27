@@ -14,7 +14,7 @@ import { createMock } from '@golevelup/ts-jest';
 import { MailerService } from '../src/mailer/mailer.service';
 import { AddProductDto } from '../src/product/dto';
 import { seedDatabase } from '../src/prisma/seedDB';
-import { Inventory, Product, Size } from '@prisma/client';
+import { CartItem, Inventory, Product, Size } from '@prisma/client';
 import { AddCartItemDto } from '../src/cart/dto';
 import { UpdateInventoryDto } from '../src/inventory/dto';
 
@@ -29,7 +29,6 @@ describe('AppController (e2e)', () => {
     email: process.env.ADMIN_EMAIL,
     password: process.env.ADMIN_PASSWORD,
   };
-
   const signIn = async (
     dto: AuthDto = authDto,
   ): Promise<{
@@ -65,11 +64,10 @@ describe('AppController (e2e)', () => {
         return { res: ctx.res, product: ctx.res.body };
       });
   };
-
   const updateInventory = async (
     inventoryItemDto: UpdateInventoryDto,
   ): Promise<{
-    product: Inventory;
+    inventory: Inventory;
     res: pactum.handler.PactumResponse;
   }> => {
     const { access_token_cookie } = await signIn(adminAuthDto);
@@ -80,7 +78,24 @@ describe('AppController (e2e)', () => {
       .withBody(inventoryItemDto)
       .expectStatus(201)
       .returns((ctx) => {
-        return { res: ctx.res, product: ctx.res.body };
+        return { res: ctx.res, inventory: ctx.res.body };
+      });
+  };
+  const addToCart = async (
+    addCartItemDto: AddCartItemDto,
+  ): Promise<{
+    cartItem: CartItem;
+    res: pactum.handler.PactumResponse;
+  }> => {
+    const { access_token_cookie } = await signIn();
+    return pactum
+      .spec()
+      .post('/cart/add')
+      .withCookies(access_token_cookie)
+      .withBody(addCartItemDto)
+      .expectStatus(201)
+      .returns((ctx) => {
+        return { res: ctx.res, cartItem: ctx.res.body };
       });
   };
 
@@ -331,6 +346,7 @@ describe('AppController (e2e)', () => {
         //   ...inventoryItemDto,
         // };
         // delete invalid_body.price;
+        //! add more cases?
         //! add check for different fields(fuzzy maybe? )
         await pactum
           .spec()
@@ -463,7 +479,6 @@ describe('AppController (e2e)', () => {
           .expectStatus(400);
       });
     });
-
     describe('delete inventory', () => {
       it('should fail if not admin', async () => {
         const inventoryItemDto: UpdateInventoryDto = {
@@ -540,71 +555,288 @@ describe('AppController (e2e)', () => {
       });
     });
   });
-  // describe('cart', () => {
-  //   let product: Product;
-  //   beforeAll(async () => {
-  //     product = (await addProduct(addProductDto)).product;
-  //   });
-  //   beforeEach(async () => {
-  //     await prisma.cartItem.deleteMany();
-  //   });
+  describe('cart', () => {
+    const addProductDto: AddProductDto = {
+      name: 'product 1',
+      description: 'description 1',
+      color: 'blue',
+      material: 'cotton',
+      category: 'MEN',
+      brand: 'some brand',
+    };
+    let product: Product;
+    let inventory: Inventory;
+    beforeAll(async () => {
+      product = (await addProduct(addProductDto)).product;
+      inventory = (
+        await updateInventory({
+          discount: 10,
+          price: 10,
+          productId: product.id,
+          quantity: 2,
+          size: Size.SMALL,
+        })
+      ).inventory;
+    });
+    beforeEach(async () => {
+      await prisma.cartItem.deleteMany();
+    });
 
-  //   describe('get cart items', () => {
-  //     it('should fail if user not logged in', () => {
-  //       return pactum.spec().get('/cart').expectStatus(401);
-  //     });
-  //     it('should get 0 items from empty cart', async () => {
-  //       const { access_token_cookie } = await signIn();
-  //       return pactum
-  //         .spec()
-  //         .get('/cart')
-  //         .withCookies(access_token_cookie)
-  //         .expectStatus(200)
-  //         .expectJsonLength(0);
-  //     });
-  //     it('should get all items in cart', async () => {
-  //       const { access_token_cookie } = await signIn();
-  //       //! add item and check
-  //       return pactum
-  //         .spec()
-  //         .get('/cart')
-  //         .withCookies(access_token_cookie)
-  //         .expectStatus(200)
-  //         .expectJsonLength(2);
-  //     });
-  //   });
-  //   describe('add item', () => {
-  //     it.todo('should fail if user not logged');
-  //     // it.todo('should fail gor invalid user token ');
-  //     it('should add new item in cart', async () => {
-  //       const { access_token_cookie } = await signIn();
-  //       const cartItemDto: AddCartItemDto = {
-  //         productId: product.id,
-  //         size: Size.MEDIUM,
-  //       };
+    describe('get cart items', () => {
+      it('should fail if user not logged in', () => {
+        return pactum.spec().get('/cart').expectStatus(401);
+      });
+      it('should get 0 items from empty cart', async () => {
+        const { access_token_cookie } = await signIn();
+        return pactum
+          .spec()
+          .get('/cart')
+          .withCookies(access_token_cookie)
+          .expectStatus(200)
+          .expectJsonLength(0);
+      });
+      it('should get all items in cart', async () => {
+        const { access_token_cookie } = await signIn();
+        //! add item and check
+        await updateInventory({
+          discount: 10,
+          price: 10,
+          productId: product.id,
+          quantity: 2,
+          size: Size.MEDIUM,
+        });
 
-  //       return pactum
-  //         .spec()
-  //         .post('/cart/add')
-  //         .withCookies(access_token_cookie)
-  //         .withBody(cartItemDto)
-  //         .expectStatus(201);
-  //     });
-  //     it.todo('should increment item qty if already in cart');
-  //     it.todo('should fail for invalid product id');
-  //     it.todo('should fail for invalid size value');
-  //     it.todo('should fail for if no size in inventory');
-  //   });
-  //   describe('remove item', () => {
-  //     it.todo('should fail if user not logged in');
-  //     it.todo('should decrement item qty on remove');
-  //     it.todo('should remove item from cart if qty is zero');
-  //   });
-  //   describe('clear cart', () => {
-  //     it.todo('should fail if user not logged in');
-  //     it.todo('should clear cart');
-  //   });
-  // });
+        const addToCartDto1: AddCartItemDto = {
+          productId: product.id,
+          size: inventory.size,
+        };
+        const addToCartDto1_qty2: AddCartItemDto = {
+          productId: product.id,
+          size: inventory.size,
+        };
+        const addToCartDto2: AddCartItemDto = {
+          productId: product.id,
+          size: Size.MEDIUM,
+        };
+        await addToCart(addToCartDto1);
+        await addToCart(addToCartDto1_qty2);
+        await addToCart(addToCartDto2);
+        return pactum
+          .spec()
+          .get('/cart')
+          .withCookies(access_token_cookie)
+          .expectStatus(200)
+          .expectJsonLength(2)
+          .expectJsonLike([
+            {
+              ...addToCartDto1,
+              quantity: 2,
+            },
+            {
+              ...addToCartDto2,
+              quantity: 1,
+            },
+          ]);
+      });
+    });
+    describe('add item', () => {
+      it('should fail if user not logged', async () => {
+        const cartItemDto: AddCartItemDto = {
+          productId: product.id,
+          size: inventory.size,
+        };
+        return pactum
+          .spec()
+          .post('/cart/add')
+          .withBody(cartItemDto)
+          .expectStatus(401);
+      });
+      // it.todo('should fail gor invalid user token ');
+      it('should add new item in cart', async () => {
+        const { access_token_cookie } = await signIn();
+        const cartItemDto: AddCartItemDto = {
+          productId: product.id,
+          size: inventory.size,
+        };
+
+        return pactum
+          .spec()
+          .post('/cart/add')
+          .withCookies(access_token_cookie)
+          .withBody(cartItemDto)
+          .expectStatus(201);
+      });
+      it('should increment item qty if already in cart', async () => {
+        const { access_token_cookie } = await signIn();
+        const cartItemDto: AddCartItemDto = {
+          productId: product.id,
+          size: inventory.size,
+        };
+        await pactum
+          .spec()
+          .post('/cart/add')
+          .withCookies(access_token_cookie)
+          .withBody(cartItemDto)
+          .expectStatus(201);
+        return pactum
+          .spec()
+          .post('/cart/add')
+          .withCookies(access_token_cookie)
+          .withBody(cartItemDto)
+          .expectStatus(201)
+          .expectJsonLike({
+            quantity: 2,
+          });
+      });
+      it('should fail if product is out of stock', async () => {
+        const { access_token_cookie } = await signIn();
+        const cartItemDto: AddCartItemDto = {
+          productId: product.id,
+          size: inventory.size,
+        };
+        await pactum
+          .spec()
+          .post('/cart/add')
+          .withCookies(access_token_cookie)
+          .withBody(cartItemDto)
+          .expectStatus(201);
+        await pactum
+          .spec()
+          .post('/cart/add')
+          .withCookies(access_token_cookie)
+          .withBody(cartItemDto)
+          .expectStatus(201);
+        return pactum
+          .spec()
+          .post('/cart/add')
+          .withCookies(access_token_cookie)
+          .withBody(cartItemDto)
+          .expectStatus(400);
+      });
+      it('should fail for invalid product id or size', async () => {
+        const { access_token_cookie } = await signIn();
+        await pactum
+          .spec()
+          .post('/cart/add')
+          .withCookies(access_token_cookie)
+          .withBody({ productId: product.id, size: 'SOME' })
+          .expectStatus(400);
+        return pactum
+          .spec()
+          .post('/cart/add')
+          .withCookies(access_token_cookie)
+          .withBody({ productId: 1000, size: inventory.size })
+          .expectStatus(400);
+      });
+      it('should fail for if no size in inventory', async () => {
+        const { access_token_cookie } = await signIn();
+        const cartItemDto: AddCartItemDto = {
+          productId: product.id,
+          size: Size.LARGE,
+        };
+        return pactum
+          .spec()
+          .post('/cart/add')
+          .withCookies(access_token_cookie)
+          .withBody(cartItemDto)
+          .expectStatus(400);
+      });
+    });
+    describe('remove item', () => {
+      it('should fail if user not logged', async () => {
+        const cartItemDto: AddCartItemDto = {
+          productId: product.id,
+          size: inventory.size,
+        };
+        const { cartItem } = await addToCart(cartItemDto);
+        return pactum
+          .spec()
+          .post(`/cart/remove/${cartItem.id}`)
+          .expectStatus(401);
+      });
+      it('should fail if cart id is invalid', async () => {
+        const { access_token_cookie } = await signIn();
+        return pactum
+          .spec()
+          .post(`/cart/remove/10`)
+          .withCookies(access_token_cookie)
+          .expectStatus(400);
+      });
+      it('should decrement item qty on remove', async () => {
+        const cartItemDto: AddCartItemDto = {
+          productId: product.id,
+          size: inventory.size,
+        };
+        await addToCart(cartItemDto);
+        const { cartItem } = await addToCart(cartItemDto);
+        const { access_token_cookie } = await signIn();
+        await pactum
+          .spec()
+          .post(`/cart/remove/${cartItem.id}`)
+          .withCookies(access_token_cookie)
+          .expectStatus(200);
+
+        return pactum
+          .spec()
+          .get(`/cart`)
+          .withCookies(access_token_cookie)
+          .expectStatus(200)
+          .expectJsonLength(1)
+          .expectJsonLike([
+            {
+              quantity: 1,
+            },
+          ]);
+      });
+      it('should remove item from cart if qty is zero', async () => {
+        const cartItemDto: AddCartItemDto = {
+          productId: product.id,
+          size: inventory.size,
+        };
+        const { cartItem } = await addToCart(cartItemDto);
+        const { access_token_cookie } = await signIn();
+        await pactum
+          .spec()
+          .post(`/cart/remove/${cartItem.id}`)
+          .withCookies(access_token_cookie)
+          .expectStatus(200);
+
+        return pactum
+          .spec()
+          .get(`/cart`)
+          .withCookies(access_token_cookie)
+          .expectStatus(200)
+          .expectJsonLength(0);
+      });
+    });
+    describe('clear cart', () => {
+      it('should fail if user not logged in', async () => {
+        const cartItemDto: AddCartItemDto = {
+          productId: product.id,
+          size: inventory.size,
+        };
+        await addToCart(cartItemDto);
+        return pactum.spec().delete(`/cart/clear`).expectStatus(401);
+      });
+      it('should clear cart', async () => {
+        const cartItemDto: AddCartItemDto = {
+          productId: product.id,
+          size: inventory.size,
+        };
+        await addToCart(cartItemDto);
+        const { access_token_cookie } = await signIn();
+
+        return pactum
+          .spec()
+          .delete(`/cart/clear`)
+          .withCookies(access_token_cookie)
+          .expectStatus(200)
+          .expectJsonLike({
+            message: 'Cart Cleared',
+          });
+      });
+    });
+  });
 
   afterAll(() => {
     app.close();

@@ -48,18 +48,18 @@ export class CartService {
       cartItem = await this.prisma.cartItem.create({
         data: {
           userId,
-          qunatity: 1,
+          quantity: 1,
           size,
           productId,
         },
       });
-    } else if (inventory.quantity > cartItem.qunatity) {
+    } else if (inventory.quantity > cartItem.quantity) {
       cartItem = await this.prisma.cartItem.update({
         where: {
           id: cartItem.id,
         },
         data: {
-          qunatity: {
+          quantity: {
             increment: 1,
           },
         },
@@ -82,13 +82,13 @@ export class CartService {
     if (!cartItem) {
       throw new BadRequestException('Item not present in cart');
     }
-    if (cartItem.qunatity === 1) {
+    if (cartItem.quantity === 1) {
       await this.prisma.cartItem.delete({ where: { id: cartItem.id } });
     } else {
       await this.prisma.cartItem.update({
         where: { id: cartItem.id },
         data: {
-          qunatity: {
+          quantity: {
             decrement: 1,
           },
         },

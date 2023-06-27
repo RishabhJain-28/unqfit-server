@@ -37,7 +37,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "dotenv -e .env.test -- jest --config ./test/jest-e2e.json",
-    "test:e2e:watch": "dotenv -e .env.test -- jest --watch --config ./test/jest-e2e.json"
+    "test:e2e:watch": "dotenv -e .env.test -- jest --watch --config ./test/jest-e2e.json",
+    "prisma:studio:test": "dotenv -e .env.test -- npx prisma studio "
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.8.1",

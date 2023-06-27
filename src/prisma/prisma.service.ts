@@ -27,13 +27,13 @@ export class PrismaService extends PrismaClient {
     if (process.env.NODE_ENV === 'production') return;
     //!find better way
     return this.$transaction([
-      this.user.deleteMany(),
-      this.product.deleteMany(),
-      this.cartItem.deleteMany(),
-      this.inventory.deleteMany(),
+      this.verifyEmail.deleteMany(),
       this.order.deleteMany(),
       this.orderItem.deleteMany(),
-      this.verifyEmail.deleteMany(),
+      this.cartItem.deleteMany(),
+      this.inventory.deleteMany(),
+      this.product.deleteMany(),
+      this.user.deleteMany(),
     ]);
   }
 }
