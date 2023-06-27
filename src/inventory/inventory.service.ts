@@ -1,44 +1,51 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateInventoryDto } from './dto';
-import { Size } from '@prisma/client';
+import { Prisma, Size } from '@prisma/client';
 //!product also has an in stock variable
 @Injectable()
 export class InventoryService {
   constructor(private prisma: PrismaService) {}
 
   async getInventoryByProductAndSize(productId: number, size: Size) {
-    const inventory = await this.prisma.inventory.findUnique({
-      where: {
-        productId_size: {
-          productId,
-          size,
+    try {
+      const inventory = await this.prisma.inventory.findUnique({
+        where: {
+          productId_size: {
+            productId,
+            size,
+          },
         },
-      },
-    });
-
-    if (!inventory) {
-      throw new BadRequestException('inventory not found');
+      });
+      if (!inventory) {
+        throw new BadRequestException('Inventory not found');
+      }
+      return inventory;
+    } catch (e) {
+      // console.log(e);
+      throw new BadRequestException('Invalid product id or size');
     }
-
-    return inventory;
   }
 
   async deleteInventoryByProductAndSize(productId: number, size: Size) {
-    const inventory = await this.prisma.inventory.delete({
-      where: {
-        productId_size: {
-          productId,
-          size,
+    try {
+      const inventory = await this.prisma.inventory.delete({
+        where: {
+          productId_size: {
+            productId,
+            size,
+          },
         },
-      },
-    });
+      });
 
-    if (!inventory) {
-      throw new BadRequestException('inventory not found');
+      if (!inventory) {
+        throw new BadRequestException('inventory not found');
+      }
+
+      return inventory;
+    } catch (e) {
+      throw new BadRequestException('Invalid product id or size');
     }
-
-    return inventory;
   }
 
   async updateInventory({

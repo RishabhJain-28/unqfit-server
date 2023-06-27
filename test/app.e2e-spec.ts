@@ -14,8 +14,9 @@ import { createMock } from '@golevelup/ts-jest';
 import { MailerService } from '../src/mailer/mailer.service';
 import { AddProductDto } from '../src/product/dto';
 import { seedDatabase } from '../src/prisma/seedDB';
-import { Product, Size } from '@prisma/client';
+import { Inventory, Product, Size } from '@prisma/client';
 import { AddCartItemDto } from '../src/cart/dto';
+import { UpdateInventoryDto } from '../src/inventory/dto';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -28,14 +29,7 @@ describe('AppController (e2e)', () => {
     email: process.env.ADMIN_EMAIL,
     password: process.env.ADMIN_PASSWORD,
   };
-  const addProductDto: AddProductDto = {
-    name: 'product 1',
-    description: 'description 1',
-    color: 'blue',
-    material: 'cotton',
-    category: 'MEN',
-    brand: 'some brand',
-  };
+
   const signIn = async (
     dto: AuthDto = authDto,
   ): Promise<{
@@ -55,7 +49,7 @@ describe('AppController (e2e)', () => {
       });
   };
   const addProduct = async (
-    dto: AddProductDto = addProductDto,
+    dto: AddProductDto,
   ): Promise<{
     product: Product;
     res: pactum.handler.PactumResponse;
@@ -66,6 +60,24 @@ describe('AppController (e2e)', () => {
       .post('/products/add')
       .withCookies(access_token_cookie)
       .withBody(dto)
+      .expectStatus(201)
+      .returns((ctx) => {
+        return { res: ctx.res, product: ctx.res.body };
+      });
+  };
+
+  const updateInventory = async (
+    inventoryItemDto: UpdateInventoryDto,
+  ): Promise<{
+    product: Inventory;
+    res: pactum.handler.PactumResponse;
+  }> => {
+    const { access_token_cookie } = await signIn(adminAuthDto);
+    return pactum
+      .spec()
+      .post('/inventory/update')
+      .withCookies(access_token_cookie)
+      .withBody(inventoryItemDto)
       .expectStatus(201)
       .returns((ctx) => {
         return { res: ctx.res, product: ctx.res.body };
@@ -95,84 +107,15 @@ describe('AppController (e2e)', () => {
     // pactum.settings.setLogLevel('');
   });
 
-  // describe('Auth', () => {
-  //   // const EMAIL = ;
-  //   const authDto: AuthDto = {
-  //     email: 'abc@gmail.com',
-  //     password: 'Pass@123',
-  //   };
-  //   const sendVerificationEmailDto: SendVerificationEmailDto = {
-  //     email: authDto.email,
-  //   };
-
-  //   describe('Verify Email', () => {
-  //     pactum
-  //       .spec()
-  //       .post('/auth/sendVerificationEmail')
-  //       .withBody(sendVerificationEmailDto)
-  //       .expectStatus(201);
-
-  //     // const emailService = app.get<MailerService>(MailerService);
-  //     // expect(emailService.sendMail).toHaveBeenCalled();
-  //   });
-
-  //   describe('Signup', () => {
-  //     const signupDto: SignupDto = {
-  //       ...authDto,
-  //       name: 'Test perosn 1',
-  //     };
-  //     it('Should sign up', () => {
-  //       return pactum
-  //         .spec()
-  //         .post('/auth/signup')
-  //         .withBody(signupDto)
-  //         .expectStatus(201);
-  //     });
-  //     it('Should throw if email empty', () => {
-  //       //! add more expects other than Status
-  //       return pactum
-  //         .spec()
-  //         .post('/auth/signup')
-  //         .withBody({
-  //           password: signupDto.password,
-  //         })
-  //         .expectStatus(400);
-  //     });
-  //     it('Should throw if password empty', () => {
-  //       //! add more expects other than Status
-  //       return pactum
-  //         .spec()
-  //         .post('/auth/signup')
-  //         .withBody({
-  //           email: signupDto.email,
-  //         })
-  //         .expectStatus(400);
-  //     });
-  //   });
-
-  //   describe('Signin', () => {
-  //     it('should sign in', () => {
-  //       return pactum
-  //         .spec()
-  //         .post('/auth/signin')
-  //         .withBody(authDto)
-  //         .expectStatus(200)
-  //         .stores('userAt', 'access_token_cookie');
-  //     });
-  //     it('Should throw if incorrect email or pass', () => {
-  //       return pactum
-  //         .spec()
-  //         .post('/auth/signin')
-  //         .withBody({
-  //           password: 'Pass@123a',
-  //           email: authDto.email,
-  //         })
-  //         .expectStatus(401);
-  //     });
-  //   });
-  // });
-
   describe('product', () => {
+    const addProductDto: AddProductDto = {
+      name: 'product 1',
+      description: 'description 1',
+      color: 'blue',
+      material: 'cotton',
+      category: 'MEN',
+      brand: 'some brand',
+    };
     beforeEach(async () => {
       await prisma.product.deleteMany();
     });
@@ -207,7 +150,6 @@ describe('AppController (e2e)', () => {
           .post('/products/add')
           .withCookies(access_token_cookie)
           .withBody(addProductDto)
-          .inspect()
           .expectStatus(403);
       });
       it('should fail if it has empty body', async () => {
@@ -308,74 +250,439 @@ describe('AppController (e2e)', () => {
       });
     });
   });
-
-  describe('cart', () => {
+  describe('inventory', () => {
+    const addProductDto: AddProductDto = {
+      name: 'product 1',
+      description: 'description 1',
+      color: 'blue',
+      material: 'cotton',
+      category: 'MEN',
+      brand: 'some brand',
+    };
     let product: Product;
     beforeAll(async () => {
       product = (await addProduct(addProductDto)).product;
     });
     beforeEach(async () => {
-      await prisma.cartItem.deleteMany();
+      await prisma.inventory.deleteMany();
     });
+    //! add checks with get req too?
 
-    describe('get cart items', () => {
-      it('should fail if user not logged in', () => {
-        return pactum.spec().get('/cart').expectStatus(401);
-      });
-      it('should get 0 items from empty cart', async () => {
-        const { access_token_cookie } = await signIn();
-        return pactum
-          .spec()
-          .get('/cart')
-          .withCookies(access_token_cookie)
-          .expectStatus(200)
-          .expectJsonLength(0);
-      });
-      it('should get all items in cart', async () => {
-        const { access_token_cookie } = await signIn();
-        //! add item and check
-        return pactum
-          .spec()
-          .get('/cart')
-          .withCookies(access_token_cookie)
-          .expectStatus(200)
-          .expectJsonLength(2);
-      });
-    });
-    describe('add item', () => {
-      it.todo('should fail if user not logged');
-      // it.todo('should fail gor invalid user token ');
-      it('should add new item in cart', async () => {
-        const { access_token_cookie } = await signIn();
-        const cartItemDto: AddCartItemDto = {
+    describe('update inventory', () => {
+      it('should fail if not admin', async () => {
+        const inventoryItemDto: UpdateInventoryDto = {
+          discount: 10,
+          price: 10,
           productId: product.id,
-          size: Size.MEDIUM,
+          quantity: 2,
+          size: Size.SMALL,
         };
 
+        const { access_token_cookie } = await signIn();
         return pactum
           .spec()
-          .post('/cart/add')
+          .post('/inventory/update')
           .withCookies(access_token_cookie)
-          .withBody(cartItemDto)
-          .expectStatus(201);
+          .withBody(inventoryItemDto)
+          .expectStatus(403);
       });
-      it.todo('should increment item qty if already in cart');
-      it.todo('should fail for invalid product id');
-      it.todo('should fail for invalid size value');
-      it.todo('should fail for if no size in inventory');
+      it('should fail for invalid product and size', async () => {
+        const inventoryItemDto: UpdateInventoryDto = {
+          discount: 10,
+          price: 10,
+          productId: product.id,
+          quantity: 2,
+          size: Size.SMALL,
+        };
+        const { access_token_cookie } = await signIn(adminAuthDto);
+        await pactum
+          .spec()
+          .post('/inventory/update')
+          .withCookies(access_token_cookie)
+          .withBody({ ...inventoryItemDto, productId: 1000 })
+          .expectStatus(400);
+        await pactum
+          .spec()
+          .post('/inventory/update')
+          .withCookies(access_token_cookie)
+          .withBody({ ...inventoryItemDto, size: 'SOME_VALUE' })
+          .expectStatus(400);
+        return pactum
+          .spec()
+          .post('/inventory/update')
+          .withCookies(access_token_cookie)
+          .withBody({
+            ...inventoryItemDto,
+            productId: 1000,
+            size: 'SOME_VALUE',
+          })
+          .expectStatus(400);
+      });
+      it('should fail for invalid body', async () => {
+        const inventoryItemDto: UpdateInventoryDto = {
+          discount: 10,
+          price: 10,
+          productId: product.id,
+          quantity: 2,
+          size: Size.SMALL,
+        };
+        const { access_token_cookie } = await signIn(adminAuthDto);
+        // let invalid_body = {
+        //   ...inventoryItemDto,
+        // };
+        // delete invalid_body.price;
+        //! add check for different fields(fuzzy maybe? )
+        await pactum
+          .spec()
+          .post('/inventory/update')
+          .withCookies(access_token_cookie)
+          .withBody({ ...inventoryItemDto, price: undefined })
+          .expectStatus(400);
+        await pactum
+          .spec()
+          .post('/inventory/update')
+          .withCookies(access_token_cookie)
+          .withBody({ ...inventoryItemDto, size: undefined })
+          .expectStatus(400);
+        return pactum
+          .spec()
+          .post('/inventory/update')
+          .withCookies(access_token_cookie)
+          .withBody({ ...inventoryItemDto, productId: null })
+          .expectStatus(400);
+      });
+      it('should create if doesnt exisits', async () => {
+        const inventoryItemDto: UpdateInventoryDto = {
+          discount: 10,
+          price: 10,
+          productId: product.id,
+          quantity: 2,
+          size: Size.SMALL,
+        };
+        const { access_token_cookie } = await signIn(adminAuthDto);
+        await pactum
+          .spec()
+          .post('/inventory/update')
+          .withCookies(access_token_cookie)
+          .withBody(inventoryItemDto)
+          .expectStatus(201)
+          .expectJsonLike(inventoryItemDto);
+        return pactum
+          .spec()
+          .get(
+            `/inventory/${inventoryItemDto.productId}/${inventoryItemDto.size}`,
+          )
+          .expectStatus(200)
+          .expectJsonLike(inventoryItemDto);
+      });
+      it('should update if exisits', async () => {
+        const inventoryItemDto: UpdateInventoryDto = {
+          discount: 10,
+          price: 10,
+          productId: product.id,
+          quantity: 2,
+          size: Size.SMALL,
+        };
+        const { access_token_cookie } = await signIn(adminAuthDto);
+        await pactum
+          .spec()
+          .post('/inventory/update')
+          .withCookies(access_token_cookie)
+          .withBody(inventoryItemDto)
+          .expectStatus(201);
+        const updateInventoryDto = {
+          ...inventoryItemDto,
+          price: 20,
+          quantity: 10,
+        };
+        await pactum
+          .spec()
+          .post('/inventory/update')
+          .withCookies(access_token_cookie)
+          .withBody(updateInventoryDto)
+          .expectStatus(201)
+          .expectJsonLike(updateInventoryDto);
+        return pactum
+          .spec()
+          .get(
+            `/inventory/${inventoryItemDto.productId}/${inventoryItemDto.size}`,
+          )
+          .expectStatus(200)
+          .expectJsonLike(updateInventoryDto);
+      });
     });
-    describe('remove item', () => {
-      it.todo('should fail if user not logged in');
-      it.todo('should decrement item qty on remove');
-      it.todo('should remove item from cart if qty is zero');
+    describe('get inventory', () => {
+      it('should get inventory', async () => {
+        const inventoryItemDto: UpdateInventoryDto = {
+          discount: 10,
+          price: 10,
+          productId: product.id,
+          quantity: 2,
+          size: Size.SMALL,
+        };
+        const product2 = (
+          await addProduct({ ...addProductDto, name: 'prod 2' })
+        ).product;
+        const inventoryItemDto2: UpdateInventoryDto = {
+          ...inventoryItemDto,
+          size: Size.SMALL,
+          productId: product2.id,
+        };
+        await updateInventory(inventoryItemDto);
+        await updateInventory(inventoryItemDto2);
+        await pactum
+          .spec()
+          .get(`/inventory/${product.id}/${inventoryItemDto.size}`)
+          .expectStatus(200)
+
+          .expectJsonLike(inventoryItemDto);
+        return pactum
+          .spec()
+          .get(`/inventory/${product2.id}/${inventoryItemDto2.size}`)
+          .expectStatus(200)
+
+          .expectJsonLike(inventoryItemDto2);
+      });
+      it('should fail for invalid product id or size', async () => {
+        const inventoryItemDto: UpdateInventoryDto = {
+          discount: 10,
+          price: 10,
+          productId: product.id,
+          quantity: 2,
+          size: Size.SMALL,
+        };
+        await updateInventory(inventoryItemDto);
+
+        await pactum
+          .spec()
+          .get(`/inventory/${1000}/${inventoryItemDto.size}`)
+          .expectStatus(400);
+        return pactum
+          .spec()
+          .get(`/inventory/${product.id}/${'SOME_VALUE'}`)
+          .expectStatus(400);
+      });
     });
-    describe('clear cart', () => {
-      it.todo('should fail if user not logged in');
-      it.todo('should clear cart');
+
+    describe('delete inventory', () => {
+      it('should fail if not admin', async () => {
+        const inventoryItemDto: UpdateInventoryDto = {
+          discount: 10,
+          price: 10,
+          productId: product.id,
+          quantity: 2,
+          size: Size.SMALL,
+        };
+        await updateInventory(inventoryItemDto);
+        const { access_token_cookie } = await signIn();
+        return pactum
+          .spec()
+          .delete(
+            `/inventory/${inventoryItemDto.productId}/${inventoryItemDto.size}`,
+          )
+          .withCookies(access_token_cookie)
+          .expectStatus(403);
+      });
+      it('should fail for invalid product id or size', async () => {
+        const inventoryItemDto: UpdateInventoryDto = {
+          discount: 10,
+          price: 10,
+          productId: product.id,
+          quantity: 2,
+          size: Size.SMALL,
+        };
+        await updateInventory(inventoryItemDto);
+        const { access_token_cookie } = await signIn(adminAuthDto);
+
+        await pactum
+          .spec()
+          .delete(`/inventory/${1000}/${inventoryItemDto.size}`)
+          .withCookies(access_token_cookie)
+          .expectStatus(400);
+
+        await pactum
+          .spec()
+          .delete(`/inventory/${inventoryItemDto.productId}/${'Some_size'}`)
+          .withCookies(access_token_cookie)
+          .expectStatus(400);
+
+        return pactum
+          .spec()
+          .get(
+            `/inventory/${inventoryItemDto.productId}/${inventoryItemDto.size}`,
+          )
+          .expectStatus(200)
+          .expectJsonLike(inventoryItemDto);
+      });
+      it('should delete inventory if exits', async () => {
+        const inventoryItemDto: UpdateInventoryDto = {
+          discount: 10,
+          price: 10,
+          productId: product.id,
+          quantity: 2,
+          size: Size.SMALL,
+        };
+        await updateInventory(inventoryItemDto);
+        const { access_token_cookie } = await signIn(adminAuthDto);
+        await pactum
+          .spec()
+          .delete(
+            `/inventory/${inventoryItemDto.productId}/${inventoryItemDto.size}`,
+          )
+          .withCookies(access_token_cookie)
+          .expectStatus(200);
+        return pactum
+          .spec()
+          .get(
+            `/inventory/${inventoryItemDto.productId}/${inventoryItemDto.size}`,
+          )
+          .expectStatus(400);
+      });
     });
   });
+  // describe('cart', () => {
+  //   let product: Product;
+  //   beforeAll(async () => {
+  //     product = (await addProduct(addProductDto)).product;
+  //   });
+  //   beforeEach(async () => {
+  //     await prisma.cartItem.deleteMany();
+  //   });
+
+  //   describe('get cart items', () => {
+  //     it('should fail if user not logged in', () => {
+  //       return pactum.spec().get('/cart').expectStatus(401);
+  //     });
+  //     it('should get 0 items from empty cart', async () => {
+  //       const { access_token_cookie } = await signIn();
+  //       return pactum
+  //         .spec()
+  //         .get('/cart')
+  //         .withCookies(access_token_cookie)
+  //         .expectStatus(200)
+  //         .expectJsonLength(0);
+  //     });
+  //     it('should get all items in cart', async () => {
+  //       const { access_token_cookie } = await signIn();
+  //       //! add item and check
+  //       return pactum
+  //         .spec()
+  //         .get('/cart')
+  //         .withCookies(access_token_cookie)
+  //         .expectStatus(200)
+  //         .expectJsonLength(2);
+  //     });
+  //   });
+  //   describe('add item', () => {
+  //     it.todo('should fail if user not logged');
+  //     // it.todo('should fail gor invalid user token ');
+  //     it('should add new item in cart', async () => {
+  //       const { access_token_cookie } = await signIn();
+  //       const cartItemDto: AddCartItemDto = {
+  //         productId: product.id,
+  //         size: Size.MEDIUM,
+  //       };
+
+  //       return pactum
+  //         .spec()
+  //         .post('/cart/add')
+  //         .withCookies(access_token_cookie)
+  //         .withBody(cartItemDto)
+  //         .expectStatus(201);
+  //     });
+  //     it.todo('should increment item qty if already in cart');
+  //     it.todo('should fail for invalid product id');
+  //     it.todo('should fail for invalid size value');
+  //     it.todo('should fail for if no size in inventory');
+  //   });
+  //   describe('remove item', () => {
+  //     it.todo('should fail if user not logged in');
+  //     it.todo('should decrement item qty on remove');
+  //     it.todo('should remove item from cart if qty is zero');
+  //   });
+  //   describe('clear cart', () => {
+  //     it.todo('should fail if user not logged in');
+  //     it.todo('should clear cart');
+  //   });
+  // });
 
   afterAll(() => {
     app.close();
   });
 });
+// describe('Auth', () => {
+//   // const EMAIL = ;
+//   const authDto: AuthDto = {
+//     email: 'abc@gmail.com',
+//     password: 'Pass@123',
+//   };
+//   const sendVerificationEmailDto: SendVerificationEmailDto = {
+//     email: authDto.email,
+//   };
+
+//   describe('Verify Email', () => {
+//     pactum
+//       .spec()
+//       .post('/auth/sendVerificationEmail')
+//       .withBody(sendVerificationEmailDto)
+//       .expectStatus(201);
+
+//     // const emailService = app.get<MailerService>(MailerService);
+//     // expect(emailService.sendMail).toHaveBeenCalled();
+//   });
+
+//   describe('Signup', () => {
+//     const signupDto: SignupDto = {
+//       ...authDto,
+//       name: 'Test perosn 1',
+//     };
+//     it('Should sign up', () => {
+//       return pactum
+//         .spec()
+//         .post('/auth/signup')
+//         .withBody(signupDto)
+//         .expectStatus(201);
+//     });
+//     it('Should throw if email empty', () => {
+//       //! add more expects other than Status
+//       return pactum
+//         .spec()
+//         .post('/auth/signup')
+//         .withBody({
+//           password: signupDto.password,
+//         })
+//         .expectStatus(400);
+//     });
+//     it('Should throw if password empty', () => {
+//       //! add more expects other than Status
+//       return pactum
+//         .spec()
+//         .post('/auth/signup')
+//         .withBody({
+//           email: signupDto.email,
+//         })
+//         .expectStatus(400);
+//     });
+//   });
+
+//   describe('Signin', () => {
+//     it('should sign in', () => {
+//       return pactum
+//         .spec()
+//         .post('/auth/signin')
+//         .withBody(authDto)
+//         .expectStatus(200)
+//         .stores('userAt', 'access_token_cookie');
+//     });
+//     it('Should throw if incorrect email or pass', () => {
+//       return pactum
+//         .spec()
+//         .post('/auth/signin')
+//         .withBody({
+//           password: 'Pass@123a',
+//           email: authDto.email,
+//         })
+//         .expectStatus(401);
+//     });
+//   });
+// });

@@ -13,7 +13,6 @@ import { UpdateInventoryDto } from './dto';
 import { Size } from '@prisma/client';
 
 @Controller('inventory')
-@UseGuards(JwtGuard, AdminGuard)
 export class InventoryController {
   constructor(private inventoryService: InventoryService) {}
 
@@ -26,12 +25,14 @@ export class InventoryController {
   }
 
   @Post('/update')
+  @UseGuards(JwtGuard, AdminGuard)
   updateInventory(@Body() updateInventoryDto: UpdateInventoryDto) {
     return this.inventoryService.updateInventory(updateInventoryDto);
   }
 
   //TODO   @Delete
   @Delete('/:productId/:size')
+  @UseGuards(JwtGuard, AdminGuard)
   deleteProductSizeInventory(
     @Param('productId') productId: number,
     @Param('size') size: Size,

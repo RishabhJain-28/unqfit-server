@@ -14,7 +14,6 @@ import { ElasticsearchService } from '../elasticsearch/elasticsearch.service';
 import { AddProductDto } from './dto';
 import { ProductService } from './product.service';
 import { AdminGuard, JwtGuard } from '../auth/guard';
-import { AddRole } from '../util/decorators/middleware/addRole.decorator';
 
 @Controller('products')
 export class ProductController {
