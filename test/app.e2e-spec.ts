@@ -1,110 +1,30 @@
-import { INestApplication, Logger } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { Inventory, Product, Size } from '@prisma/client';
 import * as pactum from 'pactum';
-import {
-  AuthDto,
-  SendVerificationEmailDto,
-  SignupDto,
-  VerifyEmailDto,
-} from '../src/auth/dto';
-import { PrismaService } from '../src/prisma/prisma.service';
-import { setupApplication } from '../src/setup';
-import { AppModule } from './../src/app.module';
-import { createMock } from '@golevelup/ts-jest';
-import { MailerService } from '../src/mailer/mailer.service';
-import { AddProductDto } from '../src/product/dto';
-import { seedDatabase } from '../src/prisma/seedDB';
-import { CartItem, Inventory, Product, Size } from '@prisma/client';
 import { AddCartItemDto } from '../src/cart/dto';
 import { UpdateInventoryDto } from '../src/inventory/dto';
-
+import { PrismaService } from '../src/prisma/prisma.service';
+import { seedDatabase } from '../src/prisma/seedDB';
+import { AddProductDto } from '../src/product/dto';
+import { setupApplication } from '../src/setup';
+import { AppModule } from './../src/app.module';
+import {
+  addProduct,
+  addToCart,
+  adminAuthDto,
+  signIn,
+  updateInventory,
+} from './util/testUtilFunctions';
 describe('AppController (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  const authDto: AuthDto = {
-    email: process.env.TEST_EMAIL,
-    password: process.env.TEST_PASSWORD,
-  };
-  const adminAuthDto: AuthDto = {
-    email: process.env.ADMIN_EMAIL,
-    password: process.env.ADMIN_PASSWORD,
-  };
-  const signIn = async (
-    dto: AuthDto = authDto,
-  ): Promise<{
-    access_token_cookie: string;
-    res: pactum.handler.PactumResponse;
-  }> => {
-    return await pactum
-      .spec()
-      .post('/auth/signin')
-      .withBody(dto)
-      .expectStatus(200)
-      .returns((ctx) => {
-        return {
-          res: ctx.res,
-          access_token_cookie: ctx.res.headers['set-cookie'][0],
-        };
-      });
-  };
-  const addProduct = async (
-    dto: AddProductDto,
-  ): Promise<{
-    product: Product;
-    res: pactum.handler.PactumResponse;
-  }> => {
-    const { access_token_cookie } = await signIn(adminAuthDto);
-    return await pactum
-      .spec()
-      .post('/products/add')
-      .withCookies(access_token_cookie)
-      .withBody(dto)
-      .expectStatus(201)
-      .returns((ctx) => {
-        return { res: ctx.res, product: ctx.res.body };
-      });
-  };
-  const updateInventory = async (
-    inventoryItemDto: UpdateInventoryDto,
-  ): Promise<{
-    inventory: Inventory;
-    res: pactum.handler.PactumResponse;
-  }> => {
-    const { access_token_cookie } = await signIn(adminAuthDto);
-    return pactum
-      .spec()
-      .post('/inventory/update')
-      .withCookies(access_token_cookie)
-      .withBody(inventoryItemDto)
-      .expectStatus(201)
-      .returns((ctx) => {
-        return { res: ctx.res, inventory: ctx.res.body };
-      });
-  };
-  const addToCart = async (
-    addCartItemDto: AddCartItemDto,
-  ): Promise<{
-    cartItem: CartItem;
-    res: pactum.handler.PactumResponse;
-  }> => {
-    const { access_token_cookie } = await signIn();
-    return pactum
-      .spec()
-      .post('/cart/add')
-      .withCookies(access_token_cookie)
-      .withBody(addCartItemDto)
-      .expectStatus(201)
-      .returns((ctx) => {
-        return { res: ctx.res, cartItem: ctx.res.body };
-      });
-  };
-
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
-      providers: [
-        { provide: MailerService, useValue: createMock<MailerService>() },
-      ],
+      // providers: [
+      //   { provide: MailerService, useValue: createMock<MailerService>() },
+      // ],
     })
       // .setLogger(new Logger())
       .compile();
