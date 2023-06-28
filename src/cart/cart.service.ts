@@ -6,13 +6,13 @@ import { Prisma } from '@prisma/client';
 @Injectable()
 export class CartService {
   constructor(private prisma: PrismaService) {}
-  async getUserCartItems(userId: number) {
+  async getUserCartItems(userId: number, include_product: boolean = true) {
     return this.prisma.cartItem.findMany({
       where: {
         userId,
       },
       include: {
-        product: true,
+        product: include_product,
       },
     });
   }
